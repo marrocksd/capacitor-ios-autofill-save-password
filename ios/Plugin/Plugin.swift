@@ -15,10 +15,28 @@ public class SavePassword: CAPPlugin, CAPBridgedPlugin {
             let loginScreen = LoginScreenViewController()
             loginScreen.usernameTextField.text = call.getString("username") ?? ""
             loginScreen.passwordTextField.text = call.getString("password") ?? ""
-            self.bridge?.webView?.addSubview(loginScreen.view)
-            loginScreen.view.removeFromSuperview()
+    
+            guard let rootVC = self.bridge?.viewController else {
+                call.reject("No root view controller")
+                return
+            }
+    
+            // Present as child view controller off-screen
+            rootVC.addChild(loginScreen)
+            loginScreen.view.frame = CGRect(x: -1000, y: -1000, width: 320, height: 50)
+            rootVC.view.addSubview(loginScreen.view)
+            loginScreen.didMove(toParent: rootVC)
+    
+            // Remove it after 3 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                loginScreen.willMove(toParent: nil)
+                loginScreen.view.removeFromSuperview()
+                loginScreen.removeFromParent()
+                call.resolve()
+            }
         }
     }
+
 }
 
 class LoginScreenViewController: UIViewController {
